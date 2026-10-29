@@ -1,0 +1,84 @@
+# Metadata catalog for the sample retail warehouse. Descriptions, synonyms and
+# relationships drive schema retrieval and are shown to the model in prompts.
+tables:
+  stores:
+    description: Physical retail stores and the region each one belongs to.
+    synonyms: [store, location, branch, shop]
+    columns:
+      store_id: {description: "Unique store identifier."}
+      store_name: {description: "Display name of the store, e.g. \"Seattle #1\"."}
+      city: {description: "City where the store is located."}
+      region: {description: "Sales region of the store: NORTH, SOUTH, EAST or WEST."}
+      opened_date: {description: "Date the store opened."}
+  customers:
+    description: Registered customers with contact details, region, segment and credit limit.
+    synonyms: [customer, client, buyer, shopper, account]
+    columns:
+      customer_id: {description: "Unique customer identifier."}
+      full_name: {description: "Customer's full name.", tags: [pii]}
+      email: {description: "Customer email address.", tags: [pii]}
+      phone: {description: "Customer phone number.", tags: [pii]}
+      region: {description: "Home region of the customer: NORTH, SOUTH, EAST or WEST."}
+      segment: {description: "Customer segment: Consumer, Corporate or Small Business."}
+      signup_date: {description: "Date the customer signed up."}
+      credit_limit: {description: "Credit limit in dollars.", tags: [financial]}
+  products:
+    description: Product catalog with category, brand and list price.
+    synonyms: [product, item, sku, merchandise, catalog]
+    columns:
+      product_id: {description: "Unique product identifier."}
+      product_name: {description: "Product display name."}
+      category: {description: "Product category: Electronics, Home, Grocery, Clothing, Sports, Toys or Beauty."}
+      brand: {description: "Brand that makes the product."}
+      unit_price: {description: "Current list price in dollars."}
+  orders:
+    description: "One row per order: who ordered, at which store, when, through which channel and its status."
+    synonyms: [order, purchase, transaction, sale, sales]
+    columns:
+      order_id: {description: "Unique order identifier."}
+      customer_id: {description: "Customer who placed the order."}
+      store_id: {description: "Store that fulfilled the order."}
+      order_date: {description: "Date the order was placed."}
+      status: {description: "Order status: completed, cancelled or returned."}
+      channel: {description: "Sales channel: online or in_store."}
+  order_items:
+    description: Line items of each order with product, quantity, the price charged and discount.
+    synonyms: [line item, line, basket, units, quantity, revenue, sales amount]
+    columns:
+      order_id: {description: "Order the line belongs to."}
+      line_no: {description: "Line number within the order."}
+      product_id: {description: "Product sold on this line."}
+      quantity: {description: "Number of units sold."}
+      unit_price: {description: "Price per unit charged on this order."}
+      discount: {description: "Discount rate between 0 and 1 (0.1 means 10% off)."}
+  employees:
+    description: Store employees with job title, hire date and salary.
+    synonyms: [employee, staff, worker, associate, manager, headcount, payroll]
+    columns:
+      employee_id: {description: "Unique employee identifier."}
+      full_name: {description: "Employee's full name.", tags: [pii]}
+      store_id: {description: "Store where the employee works."}
+      job_title: {description: "Job title, e.g. Store Manager, Sales Associate, Cashier."}
+      hire_date: {description: "Date the employee was hired."}
+      salary: {description: "Annual salary in dollars.", tags: [financial]}
+
+relationships:
+  - [orders.customer_id, customers.customer_id]
+  - [orders.store_id, stores.store_id]
+  - [order_items.order_id, orders.order_id]
+  - [order_items.product_id, products.product_id]
+  - [employees.store_id, stores.store_id]
+
+glossary:
+  - term: revenue
+    definition: "SUM(order_items.quantity * order_items.unit_price * (1 - order_items.discount)), counting only orders with status = 'completed'."
+    tables: [order_items, orders]
+  - term: units sold
+    definition: SUM(order_items.quantity) over completed orders.
+    tables: [order_items, orders]
+  - term: average order value
+    definition: Revenue divided by the number of distinct completed orders.
+    tables: [order_items, orders]
+  - term: return rate
+    definition: Share of orders with status = 'returned'.
+    tables: [orders]

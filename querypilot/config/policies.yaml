@@ -1,0 +1,22 @@
+# Access policies per role.
+#   allow_tables  list of tables the role may read ("*" for all)
+#   deny_columns  table.column entries that may not be referenced anywhere
+#   mask_columns  table.column entries that may be selected only; values are hashed
+#   row_filters   table -> SQL predicate applied to every read of that table
+roles:
+  analyst:
+    allow_tables: "*"
+    deny_columns: [customers.email, customers.phone, employees.salary]
+    mask_columns: [customers.full_name, employees.full_name]
+  support_west:
+    allow_tables: [customers, orders, order_items, products, stores]
+    deny_columns: [customers.credit_limit]
+    mask_columns: []
+    row_filters:
+      customers: "region = 'WEST'"
+      stores: "region = 'WEST'"
+      orders: "store_id IN (SELECT store_id FROM stores WHERE region = 'WEST')"
+  finance:
+    allow_tables: "*"
+    deny_columns: []
+    mask_columns: []
